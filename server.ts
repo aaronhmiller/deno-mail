@@ -8,7 +8,7 @@ const emailPass = Deno.env.get("EMAIL_PASS");
 const router = new Router();
 router.post("/send", async (ctx) => {
   const body = ctx.request.body();
-  let { name, email, message };
+  let name, email, message;
 
   if (body.type === "json") {
     const value = await body.value;

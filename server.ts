@@ -1,7 +1,7 @@
 import { Hono } from "https://deno.land/x/hono@v3.3.0/mod.ts";
 
 // Environment variables
-const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
+const POSTMARK_API_KEY = Deno.env.get("POSTMARK_API_KEY");
 const EMAIL_USER = Deno.env.get("EMAIL_USER");
 
 const app = new Hono();
@@ -14,17 +14,17 @@ app.post("/send", async (c) => {
       return c.json({ status: "error", error: "Missing required fields" }, 400);
     }
 
-    const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+    const response = await fetch("https://api.postmarkapp.com/email", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${SENDGRID_API_KEY}`,
+        "Authorization": `Bearer ${POSTMARK_API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        personalizations: [{ to: [{ email: EMAIL_USER }] }],
-        from: { email: "no-reply@yourdomain.com" },
-        subject: `Message from ${name}`,
-        content: [{ type: "text/plain", value: message }],
+        From: "no-reply@yourdomain.com",
+        To: EMAIL_USER,
+        Subject: `Message from ${name}`,
+        TextBody: message,
       }),
     });
 

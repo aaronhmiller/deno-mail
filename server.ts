@@ -1,36 +1,23 @@
 import { Application, Router } from "https://deno.land/x/oak/mod.ts";
 import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
+import { decode } from "https://deno.land/std/encoding/utf8.ts";
 
+// Environment variables for email credentials
 const emailUser = Deno.env.get("EMAIL_USER");
 const emailPass = Deno.env.get("EMAIL_PASS");
 
 const router = new Router();
 router.post("/send", async (ctx) => {
   try {
-    // Retrieve the body object
-    const body = ctx.request.body();
+    // Manually read the request body as a Uint8Array
+    const body = await Deno.readAll(ctx.request.body({ type: "reader" }).value);
 
-    // Debugging: Check body type and status
-    console.log("Body Type:", body.type);
-    console.log("Body Content:", body);
+    // Decode the body into a string
+    const bodyStr = decode(body);
 
-    let value;
-
-    // Handle different types of body content
-    if (body.type === "json") {
-      value = await body.value;
-    } else if (body.type === "form") {
-      value = {};
-      for (const [key, val] of await body.value) {
-        value[key] = val;
-      }
-    } else if (body.type === "form-data") {
-      value = await body.value.read(); // Reads and parses form data
-    } else {
-      ctx.response.status = 400;
-      ctx.response.body = { status: "error", error: "Unsupported content type" };
-      return;
-    }
+    // Convert URL-encoded string to JSON-like object
+    const params = new URLSearchParams(bodyStr);
+    const value = Object.fromEntries(params.entries());
 
     console.log("Parsed Value:", value);
 

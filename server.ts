@@ -7,12 +7,11 @@ const emailPass = Deno.env.get("EMAIL_PASS");
 
 const router = new Router();
 router.post("/send", async (ctx) => {
-  const body = ctx.request.body();
+  const body = await ctx.request.body().value;
   let name, email, message;
 
-  if (body.type === "json") {
-    const value = await body.value;
-    ({ name, email, message } = value);
+  if (ctx.request.hasBody && body) {
+    ({ name, email, message } = body);
   } else {
     ctx.response.status = 400;
     ctx.response.body = { status: "error", error: "Invalid content type" };

@@ -13,15 +13,8 @@ router.post("/send", async (ctx) => {
     return;
   }
 
-  const body = ctx.request.body();
-  let value;
-  if (body.type === "json") {
-    value = await body.value;
-  } else {
-    ctx.response.status = 400;
-    ctx.response.body = { status: "error", error: "Invalid content type" };
-    return;
-  }
+  const body = ctx.request.body({ type: "json" });
+  const value = await body.value;
 
   const { name, email, message } = value;
 

@@ -1,54 +1,35 @@
-import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
-import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
+import { Application, Router } from "https://deno.land/x/oak/mod.ts";
 
-const emailUser = Deno.env.get("EMAIL_USER");
-const emailPass = Deno.env.get("EMAIL_PASS");
+const SENDGRID_API_KEY = Deno.env.get("SENDGRID_API_KEY");
 
-async function handler(req: Request): Promise<Response> {
-  try {
-    if (req.method === "POST" && req.url.endsWith("/send")) {
-      const body = await req.text(); // Directly read the body as text
-      const params = new URLSearchParams(body); // Parse as form data
-      const name = params.get("name");
-      const email = params.get("email");
-      const message = params.get("message");
+const router = new Router();
+router.post("/send", async (ctx) => {
+  const { name, email, message } = await ctx.request.body().value;
 
-      if (!name || !email || !message) {
-        return new Response(JSON.stringify({ status: "error", error: "Missing fields" }), {
-          status: 400,
-          headers: { "Content-Type": "application/json" },
-        });
-      }
+  const response = await fetch("https://api.sendgrid.com/v3/mail/send", {
+    method: "POST",
+    headers: {
+      "Authorization": `Bearer ${SENDGRID_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      personalizations: [{ to: [{ email: Deno.env.get("EMAIL_USER") }] }],
+      from: { email: "no-reply@yourdomain.com" },
+      subject: `Message from ${name}`,
+      content: [{ type: "text/plain", value: message }],
+    }),
+  });
 
-      const client = new SmtpClient();
-      await client.connectTLS({
-        hostname: "smtp.gmail.com",
-        port: 465,
-        username: emailUser,
-        password: emailPass,
-      });
-
-      await client.send({
-        from: email,
-        to: emailUser!,
-        subject: `Message from ${name}`,
-        content: message,
-      });
-
-      await client.close();
-      return new Response(JSON.stringify({ status: "success" }), {
-        status: 200,
-        headers: { "Content-Type": "application/json" },
-      });
-    } else {
-      return new Response("Not Found", { status: 404 });
-    }
-  } catch (error) {
-    return new Response(JSON.stringify({ status: "error", error: error.message }), {
-      status: 500,
-      headers: { "Content-Type": "application/json" },
-    });
+  if (response.ok) {
+    ctx.response.body = { status: "success" };
+  } else {
+    ctx.response.status = 500;
+    ctx.response.body = { status: "error", error: "Failed to send email" };
   }
-}
+});
 
-serve(handler, { port: 8000 });
+const app = new Application();
+app.use(router.routes());
+app.use(router.allowedMethods());
+
+await app.listen({ port: 8000 });

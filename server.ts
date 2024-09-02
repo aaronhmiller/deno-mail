@@ -1,8 +1,6 @@
 import { Application, Router } from "https://deno.land/x/oak/mod.ts";
 import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
-import { decode } from "https://deno.land/std/encoding/utf8.ts";
 
-// Environment variables for email credentials
 const emailUser = Deno.env.get("EMAIL_USER");
 const emailPass = Deno.env.get("EMAIL_PASS");
 
@@ -12,8 +10,8 @@ router.post("/send", async (ctx) => {
     // Manually read the request body as a Uint8Array
     const body = await Deno.readAll(ctx.request.body({ type: "reader" }).value);
 
-    // Decode the body into a string
-    const bodyStr = decode(body);
+    // Convert the Uint8Array to a string
+    const bodyStr = new TextDecoder().decode(body);
 
     // Convert URL-encoded string to JSON-like object
     const params = new URLSearchParams(bodyStr);

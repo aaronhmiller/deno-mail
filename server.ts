@@ -1,5 +1,5 @@
 import { Application, Router } from "https://deno.land/x/oak/mod.ts";
-import { send } from "https://deno.land/x/nodemailer/mod.ts";
+import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
 
 // Environment variables for email credentials
 const emailUser = Deno.env.get("EMAIL_USER");
@@ -9,23 +9,24 @@ const router = new Router();
 router.post("/send", async (ctx) => {
   const { name, email, message } = await ctx.request.body().value;
 
-  const transporter = send({
-    service: "gmail",
-    auth: {
-      user: emailUser,
-      pass: emailPass,
-    },
-  });
-
-  const mailOptions = {
-    from: email,
-    to: emailUser,
-    subject: `Message from ${name}`,
-    text: message,
-  };
+  const client = new SmtpClient();
 
   try {
-    await transporter.sendMail(mailOptions);
+    await client.connectTLS({
+      hostname: "smtp.gmail.com",
+      port: 465,
+      username: emailUser,
+      password: emailPass,
+    });
+
+    await client.send({
+      from: email,
+      to: emailUser!,
+      subject: `Message from ${name}`,
+      content: message,
+    });
+
+    await client.close();
     ctx.response.body = { status: "success" };
   } catch (error) {
     ctx.response.status = 500;

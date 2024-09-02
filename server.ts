@@ -1,4 +1,4 @@
-mport { Application, Router } from "https://deno.land/x/oak/mod.ts";
+import { Application, Router } from "https://deno.land/x/oak/mod.ts";
 import { send } from "https://deno.land/x/nodemailer/mod.ts";
 
 // Environment variables for email credentials

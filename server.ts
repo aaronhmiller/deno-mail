@@ -1,26 +1,26 @@
 import { Application, Router } from "https://deno.land/x/oak/mod.ts";
 import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
 
-// Environment variables for email credentials
 const emailUser = Deno.env.get("EMAIL_USER");
 const emailPass = Deno.env.get("EMAIL_PASS");
 
 const router = new Router();
 router.post("/send", async (ctx) => {
-  if (!ctx.request.hasBody) {
-    ctx.response.status = 400;
-    ctx.response.body = { status: "error", error: "Invalid content type" };
-    return;
-  }
-
-  const body = ctx.request.body({ type: "json" }); // Use the correct method to get the body as JSON
-  const value = await body.value;
-
-  const { name, email, message } = value;
-
-  const client = new SmtpClient();
-
   try {
+    const body = ctx.request.body({ type: "form" }); // Expect form-encoded data
+    const value = await body.value; // This will be a URLSearchParams object
+
+    const name = value.get("name");
+    const email = value.get("email");
+    const message = value.get("message");
+
+    if (!name || !email || !message) {
+      ctx.response.status = 400;
+      ctx.response.body = { status: "error", error: "Missing required fields" };
+      return;
+    }
+
+    const client = new SmtpClient();
     await client.connectTLS({
       hostname: "smtp.gmail.com",
       port: 465,

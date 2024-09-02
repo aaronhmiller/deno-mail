@@ -7,36 +7,15 @@ const emailPass = Deno.env.get("EMAIL_PASS");
 const router = new Router();
 router.post("/send", async (ctx) => {
   try {
-    const body = ctx.request.body({ type: "form" }); // Expect form-encoded data
-    const value = await body.value; // This will be a URLSearchParams object
+    console.log(ctx.request.body); // Debugging: Check what ctx.request.body is
 
-    const name = value.get("name");
-    const email = value.get("email");
-    const message = value.get("message");
+    const body = ctx.request.body(); // No specific type; let's see the output
+    console.log(body); // Debugging: Check the body object
 
-    if (!name || !email || !message) {
-      ctx.response.status = 400;
-      ctx.response.body = { status: "error", error: "Missing required fields" };
-      return;
-    }
+    const value = await body.value;
+    console.log(value); // Debugging: Check the extracted value
 
-    const client = new SmtpClient();
-    await client.connectTLS({
-      hostname: "smtp.gmail.com",
-      port: 465,
-      username: emailUser,
-      password: emailPass,
-    });
-
-    await client.send({
-      from: email,
-      to: emailUser!,
-      subject: `Message from ${name}`,
-      content: message,
-    });
-
-    await client.close();
-    ctx.response.body = { status: "success" };
+    ctx.response.body = { status: "debug", value }; // Temporarily return the value for inspection
   } catch (error) {
     ctx.response.status = 500;
     ctx.response.body = { status: "error", error: error.message };

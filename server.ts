@@ -1,51 +1,54 @@
-import { Application, Router } from "https://deno.land/x/oak/mod.ts";
+import { serve } from "https://deno.land/std@0.224.0/http/server.ts";
 import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
 
 const emailUser = Deno.env.get("EMAIL_USER");
 const emailPass = Deno.env.get("EMAIL_PASS");
 
-const router = new Router();
-router.post("/send", async (ctx) => {
+async function handler(req: Request): Promise<Response> {
   try {
-    // Manually read the request body as a Uint8Array
-    const body = await Deno.readAll(ctx.request.body({ type: "reader" }).value);
+    if (req.method === "POST" && req.url.endsWith("/send")) {
+      const body = await req.text(); // Directly read the body as text
+      const params = new URLSearchParams(body); // Parse as form data
+      const name = params.get("name");
+      const email = params.get("email");
+      const message = params.get("message");
 
-    // Convert the Uint8Array to a string
-    const bodyStr = new TextDecoder().decode(body);
+      if (!name || !email || !message) {
+        return new Response(JSON.stringify({ status: "error", error: "Missing fields" }), {
+          status: 400,
+          headers: { "Content-Type": "application/json" },
+        });
+      }
 
-    // Convert URL-encoded string to JSON-like object
-    const params = new URLSearchParams(bodyStr);
-    const value = Object.fromEntries(params.entries());
+      const client = new SmtpClient();
+      await client.connectTLS({
+        hostname: "smtp.gmail.com",
+        port: 465,
+        username: emailUser,
+        password: emailPass,
+      });
 
-    console.log("Parsed Value:", value);
+      await client.send({
+        from: email,
+        to: emailUser!,
+        subject: `Message from ${name}`,
+        content: message,
+      });
 
-    const { name, email, message } = value;
-
-    const client = new SmtpClient();
-    await client.connectTLS({
-      hostname: "smtp.gmail.com",
-      port: 465,
-      username: emailUser,
-      password: emailPass,
-    });
-
-    await client.send({
-      from: email,
-      to: emailUser!,
-      subject: `Message from ${name}`,
-      content: message,
-    });
-
-    await client.close();
-    ctx.response.body = { status: "success" };
+      await client.close();
+      return new Response(JSON.stringify({ status: "success" }), {
+        status: 200,
+        headers: { "Content-Type": "application/json" },
+      });
+    } else {
+      return new Response("Not Found", { status: 404 });
+    }
   } catch (error) {
-    ctx.response.status = 500;
-    ctx.response.body = { status: "error", error: error.message };
+    return new Response(JSON.stringify({ status: "error", error: error.message }), {
+      status: 500,
+      headers: { "Content-Type": "application/json" },
+    });
   }
-});
+}
 
-const app = new Application();
-app.use(router.routes());
-app.use(router.allowedMethods());
-
-await app.listen({ port: 8000 });
+serve(handler, { port: 8000 });

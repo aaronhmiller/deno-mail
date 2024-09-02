@@ -13,7 +13,7 @@ router.post("/send", async (ctx) => {
     return;
   }
 
-  const body = ctx.request.body({ type: "json" });
+  const body = ctx.request.body();
   const value = await body.value;
 
   const { name, email, message } = value;

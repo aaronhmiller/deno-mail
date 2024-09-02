@@ -13,28 +13,8 @@ router.post("/send", async (ctx) => {
     return;
   }
 
-  // Parse the body based on the content type
-  const body = ctx.request.body();
-  let value;
-
-  if (body.type === "json") {
-    value = await body.value;
-  } else if (body.type === "form") {
-    value = {};
-    for (const [key, val] of await body.value) {
-      value[key] = val;
-    }
-  } else if (body.type === "form-data") {
-    value = {};
-    const formData = await body.value.read();
-    formData.fields.forEach((val, key) => {
-      value[key] = val;
-    });
-  } else {
-    ctx.response.status = 400;
-    ctx.response.body = { status: "error", error: "Unsupported content type" };
-    return;
-  }
+  const body = ctx.request.body({ type: "json" }); // Use the correct method to get the body as JSON
+  const value = await body.value;
 
   const { name, email, message } = value;
 

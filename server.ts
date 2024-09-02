@@ -7,7 +7,17 @@ const emailPass = Deno.env.get("EMAIL_PASS");
 
 const router = new Router();
 router.post("/send", async (ctx) => {
-  const { name, email, message } = await ctx.request.body().value;
+  const body = ctx.request.body();
+  let { name, email, message };
+
+  if (body.type === "json") {
+    const value = await body.value;
+    ({ name, email, message } = value);
+  } else {
+    ctx.response.status = 400;
+    ctx.response.body = { status: "error", error: "Invalid content type" };
+    return;
+  }
 
   const client = new SmtpClient();
 

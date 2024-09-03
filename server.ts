@@ -1,40 +1,41 @@
 import { Application } from "https://deno.land/x/oak/mod.ts";
+import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
 
+const EMAIL_USER = "aaronmiller+deno@gmail.com";
 const EMAIL_PASS = Deno.env.get("EMAIL_PASS");
 
 async function sendEmail(name: string, email: string, message: string) {
-  const emailData = [
-    `Subject: Message from ${name}`,
-    `From: ${email}`,
-    "",
-    message,
-  ].join("\n");
+  const client = new SmtpClient();
 
-  const response = await fetch("smtps://smtp.gmail.com:465", {
-    method: "POST",
-    headers: {
-      "Content-Type": "text/plain",
-      "Authorization": `Basic ${btoa("aaronmiller+deno@gmail.com:" + EMAIL_PASS)}`,
-    },
-    body: emailData,
+  await client.connectTLS({
+    hostname: "smtp.gmail.com",
+    port: 465,
+    username: EMAIL_USER,
+    password: EMAIL_PASS,
   });
 
-  if (response.ok) {
-    console.log("Email sent successfully!");
-  } else {
-    console.error("Failed to send email:", response.statusText);
-  }
+  await client.send({
+    from: EMAIL_USER,
+    to: EMAIL_USER, // or another recipient
+    subject: `Message from ${name}`,
+    content: message,
+  });
+
+  await client.close();
+
+  console.log("Email sent successfully!");
 }
 
 const app = new Application();
 
+// CORS middleware
 app.use(async (ctx, next) => {
   ctx.response.headers.set("Access-Control-Allow-Origin", "https://aaronhmiller.github.io"); // Allow your specific origin
   ctx.response.headers.set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
   ctx.response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
-  
+
   if (ctx.request.method === "OPTIONS") {
-    ctx.response.status = 204; // No Content
+    ctx.response.status = 204;
     return;
   }
 
@@ -47,9 +48,10 @@ app.use(async (ctx, next) => {
   }
 });
 
+// Main handler
 app.use(async (ctx) => {
   if (ctx.request.method === "POST" && ctx.request.hasBody) {
-    const body = ctx.request.body({ type: "json" });
+    const body = ctx.request.body({ type: "json" }); // Explicitly state that the body is JSON
     const data = await body.value;
 
     const { name, email, message } = data;

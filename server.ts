@@ -29,7 +29,7 @@ async function sendEmail(name: string, email: string, message: string) {
 const app = new Hono();
 
 // CORS Middleware
-app.use('*', (c, next) => {
+app.use('*', async (c, next) => {
   c.header("Access-Control-Allow-Origin", "https://aaronhmiller.github.io");
   c.header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
   c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
@@ -38,7 +38,12 @@ app.use('*', (c, next) => {
     return c.text('', 204);
   }
 
-  return next();
+  try {
+    await next();
+  } catch (error) {
+    console.error("Error during request processing:", error);
+    c.status(500).json({ status: "error", message: "Internal Server Error" });
+  }
 });
 
 // Main Handler
@@ -50,7 +55,7 @@ app.post('/send', async (c) => {
 
     return c.json({ status: "success", message: "Email sent!" });
   } catch (error) {
-    console.error("Error occurred:", error);
+    console.error("Error occurred while sending email:", error);
     return c.json({ status: "error", message: "Internal Server Error" }, 500);
   }
 });

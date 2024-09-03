@@ -29,7 +29,7 @@ async function sendEmail(name: string, email: string, message: string) {
 const app = new Application();
 
 app.use(async (ctx, next) => {
-  ctx.response.headers.set("Access-Control-Allow-Origin", "*"); // Allow all origins
+  ctx.response.headers.set("Access-Control-Allow-Origin", "https://aaronhmiller.github.io"); // Allow your specific origin
   ctx.response.headers.set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
   ctx.response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
   
@@ -38,7 +38,13 @@ app.use(async (ctx, next) => {
     return;
   }
 
-  await next();
+  try {
+    await next();
+  } catch (err) {
+    ctx.response.status = 500;
+    ctx.response.body = { status: "error", message: "Internal Server Error" };
+    console.error("Error occurred:", err);
+  }
 });
 
 app.use(async (ctx) => {

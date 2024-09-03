@@ -35,8 +35,7 @@ app.use('*', async (c, next) => {
   c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (c.req.method === "OPTIONS") {
-    // Respond to OPTIONS requests for any route
-    return c.status(204).send();
+    return c.status(204).send(); // No content response for OPTIONS request
   }
 
   try {

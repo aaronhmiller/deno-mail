@@ -35,8 +35,8 @@ app.use('*', async (c, next) => {
   c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (c.req.method === "OPTIONS") {
-    c.status(204); // Return a 204 status without setting a body
-    return;
+    // Respond to OPTIONS requests for any route
+    return c.status(204).send();
   }
 
   try {
@@ -47,7 +47,7 @@ app.use('*', async (c, next) => {
   }
 });
 
-// Main Handler
+// Main Handler for POST /send
 app.post('/send', async (c) => {
   try {
     const { name, email, message } = await c.req.json();
@@ -61,6 +61,8 @@ app.post('/send', async (c) => {
   }
 });
 
+// Handler for GET /
 app.get('/', (c) => c.text('Hono Server Running'));
 
+// Start the server
 app.fire();

@@ -1,44 +1,49 @@
-import { Hono } from "https://deno.land/x/hono@v3.3.0/mod.ts";
+const EMAIL_PASS = Deno.env.get("EMAIL_PASS");
 
-// Environment variables
-const POSTMARK_API_KEY = Deno.env.get("POSTMARK_API_KEY");
-const EMAIL_USER = Deno.env.get("EMAIL_USER");
+async function sendEmail(name: string, email: string, message: string) {
+  const emailData = [
+    `Subject: Message from ${name}`,
+    `From: ${email}`,
+    "",
+    message,
+  ].join("\n");
 
-const app = new Hono();
+  const response = await fetch("smtps://smtp.gmail.com:465", {
+    method: "POST",
+    headers: {
+      "Content-Type": "text/plain",
+      "Authorization": `Basic ${btoa("aaronmiller+deno@gmail.com:" + EMAIL_PASS)}`,
+    },
+    body: emailData,
+  });
 
-app.post("/send", async (c) => {
-  try {
-    const { name, email, message } = await c.req.parseBody<{ name: string; email: string; message: string }>();
+  if (response.ok) {
+    console.log("Email sent successfully!");
+  } else {
+    console.error("Failed to send email:", response.statusText);
+  }
+}
 
-    if (!name || !email || !message) {
-      return c.json({ status: "error", error: "Missing required fields" }, 400);
-    }
+import { Application } from "https://deno.land/x/oak/mod.ts";
 
-    const response = await fetch("https://api.postmarkapp.com/email", {
-      method: "POST",
-      headers: {
-        "Authorization": `Bearer ${POSTMARK_API_KEY}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        From: "owner@demojoyto.win",
-        To: EMAIL_USER,
-        Subject: `Message from ${name}`,
-        TextBody: message,
-      }),
-    });
+const app = new Application();
 
-    if (response.ok) {
-      return c.json({ status: "success" });
-    } else {
-      const errorData = await response.json();
-      return c.json({ status: "error", error: errorData }, 500);
-    }
-  } catch (error) {
-    return c.json({ status: "error", error: error.message }, 500);
+app.use(async (ctx) => {
+  if (ctx.request.method === "POST" && ctx.request.hasBody) {
+    const body = ctx.request.body({ type: "json" });
+    const data = await body.value;
+
+    const { name, email, message } = data;
+
+    // Call the sendEmail function with the form data
+    await sendEmail(name, email, message);
+
+    ctx.response.status = 200;
+    ctx.response.body = { status: "success", message: "Email sent!" };
+  } else {
+    ctx.response.status = 404;
+    ctx.response.body = { status: "error", message: "Not Found" };
   }
 });
 
-app.get("/", (c) => c.text("Hono Server Running"));
-
-app.fire();
+await app.listen({ port: 8000 });

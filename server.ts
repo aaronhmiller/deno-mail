@@ -1,3 +1,5 @@
+import { Application } from "https://deno.land/x/oak/mod.ts";
+
 const EMAIL_PASS = Deno.env.get("EMAIL_PASS");
 
 async function sendEmail(name: string, email: string, message: string) {
@@ -24,9 +26,20 @@ async function sendEmail(name: string, email: string, message: string) {
   }
 }
 
-import { Application } from "https://deno.land/x/oak/mod.ts";
-
 const app = new Application();
+
+app.use(async (ctx, next) => {
+  ctx.response.headers.set("Access-Control-Allow-Origin", "*"); // Allow all origins
+  ctx.response.headers.set("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  ctx.response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  
+  if (ctx.request.method === "OPTIONS") {
+    ctx.response.status = 204; // No Content
+    return;
+  }
+
+  await next();
+});
 
 app.use(async (ctx) => {
   if (ctx.request.method === "POST" && ctx.request.hasBody) {

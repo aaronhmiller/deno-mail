@@ -35,7 +35,8 @@ app.use('*', async (c, next) => {
   c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
 
   if (c.req.method === "OPTIONS") {
-    return c.text('', 204);
+    c.status(204); // Return a 204 status without setting a body
+    return;
   }
 
   try {

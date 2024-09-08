@@ -1,67 +1,49 @@
 import { Hono } from "https://deno.land/x/hono@v3.3.0/mod.ts";
-import { SmtpClient } from "https://deno.land/x/smtp/mod.ts";
+//import { load } from 'https://deno.land/std@0.212.0/dotenv/mod.ts'
 
-const EMAIL_USER = "aaronmiller+deno@gmail.com";
-const EMAIL_PASS = Deno.env.get("EMAIL_PASS");
+//const env = await load();
 
-async function sendEmail(name: string, email: string, message: string) {
-  const client = new SmtpClient();
-
-  await client.connectTLS({
-    hostname: "smtp.gmail.com",
-    port: 465,
-    username: EMAIL_USER,
-    password: EMAIL_PASS,
-  });
-
-  await client.send({
-    from: EMAIL_USER,
-    to: EMAIL_USER, // or another recipient
-    subject: `Message from ${name}`,
-    content: message,
-  });
-
-  await client.close();
-
-  console.log("Email sent successfully!");
-}
+// Environment variables
+//const POSTMARK_API_KEY = env.API_KEY;
+//const EMAIL_USER = env.EMAIL_USER;
+const API_KEY = Deno.env.get("API_KEY");
+const EMAIL_USER = Deno.env.get("EMAIL_USER");
 
 const app = new Hono();
 
-// CORS Middleware
-app.use('*', async (c, next) => {
-  c.header("Access-Control-Allow-Origin", "https://aaronhmiller.github.io");
-  c.header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-  c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  if (c.req.method === "OPTIONS") {
-    return c.status(204).send(); // No content response for OPTIONS request
-  }
-
+app.post("/send", async (c) => {
   try {
-    await next();
+    const { name, email, message } = await c.req.parseBody<{ name: string; email: string; message: string }>();
+
+    if (!name || !email || !message) {
+      return c.json({ status: "error", error: "Missing required fields" }, 400);
+    }
+
+    const response = await fetch("https://api.postmarkapp.com/email", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${POSTMARK_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        From: "no-reply@yourdomain.com",
+        To: EMAIL_USER,
+        Subject: `Message from ${name}`,
+        TextBody: message,
+      }),
+    });
+    
+    if (response.ok) {
+      return c.json({ status: "success" });
+    } else {
+      const errorData = await response.json();
+      return c.json({ status: "error", error: errorData }, 500);
+    }
   } catch (error) {
-    console.error("Error during request processing:", error);
-    c.status(500).json({ status: "error", message: "Internal Server Error" });
+    return c.json({ status: "error", error: error.message }, 500);
   }
 });
 
-// Main Handler for POST /send
-app.post('/send', async (c) => {
-  try {
-    const { name, email, message } = await c.req.json();
+app.get("/", (c) => c.text("Hono Server Running"));
 
-    await sendEmail(name, email, message);
-
-    return c.json({ status: "success", message: "Email sent!" });
-  } catch (error) {
-    console.error("Error occurred while sending email:", error);
-    return c.json({ status: "error", message: "Internal Server Error" }, 500);
-  }
-});
-
-// Handler for GET /
-app.get('/', (c) => c.text('Hono Server Running'));
-
-// Start the server
 app.fire();

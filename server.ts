@@ -34,7 +34,7 @@ app.post("/send", async (c) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        From: "no-reply@yourdomain.com",
+        From: "no-reply@demojoyto.win",
         To: EMAIL_USER!,
         Subject: `Message from ${name}`,
         TextBody: message,

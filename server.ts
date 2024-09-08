@@ -42,8 +42,7 @@ app.post("/send", async (c) => {
       return c.json({ status: "error", error: "Missing required fields" }, 400);
     }
 
-console.log("API_KEY:", API_KEY);
-console.log("EMAIL_USER:", EMAIL_USER);
+
 
     const response = await fetch("https://api.postmarkapp.com/email", {
       method: "POST",
@@ -71,5 +70,7 @@ console.log("EMAIL_USER:", EMAIL_USER);
 });
 
 app.get("/", (c) => c.text("Hono Server Running"));
+console.log("API_KEY:", API_KEY);
+console.log("EMAIL_USER:", EMAIL_USER);
 
 app.fire();

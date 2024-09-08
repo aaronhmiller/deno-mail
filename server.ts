@@ -11,6 +11,29 @@ const EMAIL_USER = Deno.env.get("EMAIL_USER");
 
 const app = new Hono();
 
+
+// CORS Middleware
+app.use('*', async (c, next) => {
+  // Set necessary CORS headers
+  c.header("Access-Control-Allow-Origin", "https://aaronhmiller.github.io");
+  c.header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
+  c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  if (c.req.method === "OPTIONS") {
+    // Return a 204 status with no content for preflight OPTIONS requests
+    return c.status(204).send();
+  }
+
+  try {
+    await next();
+  } catch (error) {
+    console.error("Error during request processing:", error);
+    c.status(500).json({ status: "error", message: "Internal Server Error" });
+  }
+});
+
+
+
 app.post("/send", async (c) => {
   try {
     const { name, email, message } = await c.req.parseBody<{ name: string; email: string; message: string }>();

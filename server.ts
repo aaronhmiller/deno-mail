@@ -1,5 +1,5 @@
 import { Hono } from "https://deno.land/x/hono@v3.3.0/mod.ts";
-//import { load } from 'https://deno.land/std@0.212.0/dotenv/mod.ts'
+import { cors } from "https://deno.land/x/hono@v3.3.0/middleware.ts";
 
 //const env = await load();
 
@@ -11,23 +11,12 @@ const EMAIL_USER = Deno.env.get("EMAIL_USER");
 
 const app = new Hono();
 
-
 // CORS Middleware
-app.use('*', async (c, next) => {
-  // Set necessary CORS headers
-  c.header("Access-Control-Allow-Origin", "https://aaronhmiller.github.io");
-  c.header("Access-Control-Allow-Methods", "POST, GET, OPTIONS");
-  c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
-
-  if (c.req.method === "OPTIONS") {
-    // Return a 204 status with no content for preflight OPTIONS requests
-    return c.status(204).send();
-  }
-
-  await next();
-});
-
-
+app.use('*', cors({
+  origin: 'https://aaronhmiller.github.io',
+  allowMethods: ['POST', 'GET', 'OPTIONS'],
+  allowHeaders: ['Content-Type', 'Authorization'],
+}));
 
 app.post("/send", async (c) => {
   try {

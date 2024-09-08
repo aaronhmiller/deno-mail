@@ -45,7 +45,7 @@ app.post("/send", async (c) => {
     const response = await fetch("https://api.postmarkapp.com/email", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${POSTMARK_API_KEY}`,
+        "Authorization": `Bearer ${API_KEY}`,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({

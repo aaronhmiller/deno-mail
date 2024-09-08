@@ -24,37 +24,32 @@ app.use('*', async (c, next) => {
     return c.status(204).send();
   }
 
-  try {
-    await next();
-  } catch (error) {
-    console.error("Error during request processing:", error);
-    c.status(500).json({ status: "error", message: "Internal Server Error" });
-  }
+  await next();
 });
 
 
 
 app.post("/send", async (c) => {
   try {
-    const { name, email, message } = await c.req.parseBody<{ name: string; email: string; message: string }>();
+    const body = await c.req.json();
+    const { name, email, message } = body;
 
     if (!name || !email || !message) {
       return c.json({ status: "error", error: "Missing required fields" }, 400);
     }
 
-
-
     const response = await fetch("https://api.postmarkapp.com/email", {
       method: "POST",
       headers: {
-        "Authorization": `Bearer ${API_KEY}`,
+        "X-Postmark-Server-Token": API_KEY!,
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
         From: "no-reply@yourdomain.com",
-        To: EMAIL_USER,
+        To: EMAIL_USER!,
         Subject: `Message from ${name}`,
         TextBody: message,
+        ReplyTo: email,
       }),
     });
     
@@ -62,15 +57,15 @@ app.post("/send", async (c) => {
       return c.json({ status: "success" });
     } else {
       const errorData = await response.json();
-      return c.json({ status: "error", error: errorData }, 500);
+      console.error("Postmark API error:", errorData);
+      return c.json({ status: "error", error: "Failed to send email" }, 500);
     }
   } catch (error) {
-    return c.json({ status: "error", error: error.message }, 500);
+    console.error("Error processing request:", error);
+    return c.json({ status: "error", error: "Internal server error" }, 500);
   }
 });
 
 app.get("/", (c) => c.text("Hono Server Running"));
-console.log("API_KEY:", API_KEY);
-console.log("EMAIL_USER:", EMAIL_USER);
 
-app.fire();
+export default app;

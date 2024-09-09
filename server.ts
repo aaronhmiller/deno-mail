@@ -31,6 +31,7 @@ app.post("/send", async (c) => {
     const recaptchaResult = await recaptchaResponse.json();
 
     if (!recaptchaResult.success || recaptchaResult.score < 4.0) {
+      console.error("reCAPTCHA verification failed. Score: " + recaptchaResult.score);
       return c.json({ status: "error", error: "reCAPTCHA verification failed" }, 400);
     }
 

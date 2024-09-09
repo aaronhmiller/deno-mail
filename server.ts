@@ -30,10 +30,13 @@ app.post("/send", async (c) => {
 
     const recaptchaResult = await recaptchaResponse.json();
 
-    if (!recaptchaResult.success || recaptchaResult.score < 4.0) {
+    if (!recaptchaResult.success || recaptchaResult.score < 0.5) {
       console.error("reCAPTCHA verification failed. Score: " + recaptchaResult.score);
       return c.json({ status: "error", error: "reCAPTCHA verification failed" }, 400);
     }
+
+    // Extract the domain from EMAIL_USER
+    const [, domain] = EMAIL_USER!.split('@');
 
     const response = await fetch("https://api.postmarkapp.com/email", {
       method: "POST",
@@ -42,7 +45,7 @@ app.post("/send", async (c) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        From: "no-reply@demojoyto.win",
+        From: `no-reply@${domain}`,
         To: EMAIL_USER!,
         Subject: `Message from ${name}`,
         TextBody: message,

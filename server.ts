@@ -1,13 +1,9 @@
 import { Hono } from "https://deno.land/x/hono@v3.3.0/mod.ts";
 import { cors } from "https://deno.land/x/hono@v3.3.0/middleware.ts";
 
-//const env = await load();
-
-// Environment variables
-//const POSTMARK_API_KEY = env.API_KEY;
-//const EMAIL_USER = env.EMAIL_USER;
 const API_KEY = Deno.env.get("API_KEY");
 const EMAIL_USER = Deno.env.get("EMAIL_USER");
+const RECAPTCHA_SECRET_KEY = Deno.env.get("RECAPTCHA_SECRET_KEY");
 
 const app = new Hono();
 
@@ -21,10 +17,21 @@ app.use('*', cors({
 app.post("/send", async (c) => {
   try {
     const body = await c.req.json();
-    const { name, email, message } = body;
+    const { name, email, message, recaptchaToken } = body;
 
-    if (!name || !email || !message) {
+    if (!name || !email || !message || !recaptchaToken) {
       return c.json({ status: "error", error: "Missing required fields" }, 400);
+    }
+
+    // Verify reCAPTCHA token
+    const recaptchaResponse = await fetch(`https://www.google.com/recaptcha/api/siteverify?secret=${RECAPTCHA_SECRET_KEY}&response=${recaptchaToken}`, {
+      method: "POST",
+    });
+
+    const recaptchaResult = await recaptchaResponse.json();
+
+    if (!recaptchaResult.success || recaptchaResult.score < 0.5) {
+      return c.json({ status: "error", error: "reCAPTCHA verification failed" }, 400);
     }
 
     const response = await fetch("https://api.postmarkapp.com/email", {
